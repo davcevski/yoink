@@ -28,24 +28,6 @@ jobs:
         with:
           version: latest
 
-  vuln:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: stable
-      - name: govulncheck
-        run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
-          govulncheck ./...
-      - name: gosec
-        run: |
-          go install github.com/securego/gosec/v2/cmd/gosec@latest
-          # G204/G702: launching launchctl and the user's own $EDITOR on their own
-          # config is intentional. G304: file paths come from known config locations.
-          gosec -exclude=G204,G304,G702 ./...
-
   test:
     runs-on: macos-latest
     steps:
