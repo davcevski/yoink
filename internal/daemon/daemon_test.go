@@ -86,6 +86,34 @@ func TestCaptureSkipsConcealed(t *testing.T) {
 	}
 }
 
+func TestCaptureSkipsWhitespaceOnly(t *testing.T) {
+	clip := &clipboard.Fake{}
+	db := testStore(t)
+	d := newDaemon(t, clip, db, testKeyring(t))
+
+	clip.Set("        \n\t   ") // 100-spaces-equivalent junk
+	d.capture()
+	if clips, _ := db.Recent(10); len(clips) != 0 {
+		t.Fatalf("captured a whitespace-only clip: %d clips", len(clips))
+	}
+}
+
+func TestCaptureKeepsContentWithSurroundingWhitespace(t *testing.T) {
+	clip := &clipboard.Fake{}
+	db := testStore(t)
+	d := newDaemon(t, clip, db, testKeyring(t))
+
+	clip.Set("  hello  ") // real content, padded — must be kept, stored verbatim
+	d.capture()
+	clips, _ := db.Recent(10)
+	if len(clips) != 1 {
+		t.Fatalf("dropped a clip with real content: %d clips", len(clips))
+	}
+	if clips[0].Bytes != len("  hello  ") {
+		t.Errorf("Bytes = %d, want %d (stored verbatim)", clips[0].Bytes, len("  hello  "))
+	}
+}
+
 func TestCaptureSkipsNonText(t *testing.T) {
 	clip := &clipboard.Fake{}
 	db := testStore(t)

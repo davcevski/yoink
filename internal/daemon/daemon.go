@@ -8,6 +8,7 @@ import (
 	"context"
 	"io"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/davcevski/yoink/internal/clipboard"
@@ -95,8 +96,8 @@ func (d *Daemon) capture() {
 	d.lastSeen = n
 
 	text, concealed, ok := d.clip.Read()
-	if !ok || concealed || text == "" {
-		return // non-text, concealed/transient secret, or empty
+	if !ok || concealed || strings.TrimSpace(text) == "" {
+		return // non-text, concealed/transient secret, or whitespace-only
 	}
 	if len(text) > d.cfg.MaxClipBytes {
 		return // too big to keep
