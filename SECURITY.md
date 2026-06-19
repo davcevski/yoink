@@ -22,8 +22,11 @@ keys. The history is **encrypted at rest** to protect against:
 ### What protects your data
 
 - **AES-256-GCM** encrypts every clip before it is written. The database holds
-  only ciphertext + a per-clip random nonce — a copied `history.db` is useless
-  without the key.
+  only ciphertext + a per-clip random nonce, so a copied `history.db` never
+  reveals clip **contents** without the key. It does keep per-clip metadata in
+  the clear — timestamp, plaintext byte length, and a keyed dedup hash — so a
+  copy still discloses *when*, *how big*, and *which clips repeat*, just not what
+  they say.
 - The **256-bit key lives in the macOS login Keychain**, never in the config
   file or the database. The daemon and TUI read it at runtime.
 - **Deduplication uses a keyed HMAC-SHA256**, so duplicate detection never
@@ -34,8 +37,10 @@ keys. The history is **encrypted at rest** to protect against:
   missing or unreadable.
 - Decrypted plaintext exists only in process memory for a TUI session and is
   never written back to disk.
-- The DB and log files are created with owner-only (`0600`) permissions; the
-  config directory is `0700`.
+- `history.db` is created owner-only (`0600`) and the config directory `0700`.
+  SQLite's `-wal`/`-shm` sidecars and the daemon log are left at the system
+  umask (typically `0644`), but the sidecars hold only ciphertext and the log
+  never contains clip contents — neither exposes plaintext.
 
 ### Out of scope
 
