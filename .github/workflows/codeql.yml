@@ -1,0 +1,34 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "23 4 * * 1" # weekly, Mondays
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    # macOS so the cgo (NSPasteboard/Keychain) code is built and analyzed.
+    runs-on: macos-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: go
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - name: build
+        run: CGO_ENABLED=1 go build ./...
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:go"

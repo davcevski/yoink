@@ -1,0 +1,27 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+# Default linters (errcheck, govet, ineffassign, staticcheck, unused) stay on;
+# add a few high-signal extras.
+linters:
+  enable:
+    - misspell
+    - unconvert
+    - bodyclose
+  exclusions:
+    generated: lax
+    presets:
+      # Conventional ignored returns: defer Close/Flush, fmt.Fprint, os std streams.
+      - std-error-handling
+    rules:
+      # Tests deliberately ignore some errors (e.g. seeding rows via db.Insert).
+      - path: _test\.go
+        linters:
+          - errcheck
+
+formatters:
+  enable:
+    - gofmt
+    - goimports

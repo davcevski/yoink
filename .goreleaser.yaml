@@ -1,0 +1,106 @@
+# GoReleaser v2 — builds macOS binaries, a universal (fat) binary, the GitHub
+# release, and commits the Homebrew formula into this same repo (custom-URL tap).
+# Docs: https://goreleaser.com
+version: 2
+
+project_name: yoink
+
+# Dependencies are vendored (vendor/), so builds are reproducible and offline.
+# No `go mod tidy` pre-hook: it would fight the committed vendor tree.
+
+builds:
+  - id: yoink
+    main: .
+    binary: yoink
+    env:
+      - CGO_ENABLED=1 # required: NSPasteboard + Keychain bindings
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/davcevski/yoink/internal/buildinfo.Version={{ .Version }}
+      - -X github.com/davcevski/yoink/internal/buildinfo.Commit={{ .ShortCommit }}
+      - -X github.com/davcevski/yoink/internal/buildinfo.Date={{ .Date }}
+
+# Merge the two arches into a single universal binary and ad-hoc sign it so it
+# launches cleanly and keeps a stable identity within a release.
+universal_binaries:
+  - id: yoink
+    ids:
+      - yoink
+    replace: true
+    hooks:
+      post: codesign -s - --force --timestamp=none "{{ .Path }}"
+
+archives:
+  - id: yoink
+    ids:
+      - yoink
+    formats:
+      - tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+release:
+  github:
+    owner: davcevski
+    name: yoink
+
+# Commit the cask into this repo under Casks/ (single-repo, custom-URL tap).
+# Install with:
+#   brew tap davcevski/yoink https://github.com/davcevski/yoink
+#   brew install davcevski/yoink/yoink
+homebrew_casks:
+  - name: yoink
+    ids:
+      - yoink
+    repository:
+      owner: davcevski
+      name: yoink
+      branch: main
+    directory: Casks
+    homepage: "https://github.com/davcevski/yoink"
+    description: "An encrypted macOS clipboard history with a terminal UI"
+    license: "MIT"
+    commit_author:
+      name: goreleaser-bot
+      email: bot@goreleaser.com
+    # The binary is ad-hoc signed (no Apple Developer ID), so strip the download
+    # quarantine on install — otherwise Gatekeeper blocks the first run.
+    hooks:
+      post:
+        install: |
+          system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/yoink"]
+    # Tidy up the LaunchAgent if the user removes yoink via brew.
+    uninstall:
+      launchctl:
+        - com.yoink.daemon
+    zap:
+      trash:
+        - "~/.config/yoink"
+        - "~/Library/LaunchAgents/com.yoink.daemon.plist"
+    caveats: |
+      Start the background capture daemon (runs at login) once with:
+        yoink install
+
+      yoink encrypts your clipboard history at rest with a key kept in the macOS
+      Keychain. Enabling FileVault is recommended for full at-rest protection.
+
+      Remove the daemon any time with:
+        yoink uninstall
