@@ -1,0 +1,17 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+# Default linters (errcheck, govet, ineffassign, staticcheck, unused) stay on;
+# add a few high-signal extras.
+linters:
+  enable:
+    - misspell
+    - unconvert
+    - bodyclose
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
