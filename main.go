@@ -11,6 +11,7 @@ import (
 )
 
 func main() {
+	hardenUmask() // owner-only perms for everything yoink writes (incl. DB sidecars)
 	if err := cli.Run(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, "yoink: "+err.Error())
 		os.Exit(1)

@@ -155,6 +155,10 @@ func runInstall() error {
 	if err != nil {
 		return err
 	}
+	// Pre-create the log owner-only so launchd doesn't create it world-readable.
+	if err := ensureLogFile(logPath); err != nil {
+		return fmt.Errorf("preparing log file: %w", err)
+	}
 	if err := launchd.Install(bin, logPath); err != nil {
 		return err
 	}
@@ -303,6 +307,21 @@ func runCopy(args []string) error {
 	}
 	fmt.Printf("yoinked clip %d (%d bytes) to the clipboard\n", id, clip.Bytes)
 	return nil
+}
+
+// ensureLogFile creates the daemon log file owner-only (0600) before launchd is
+// pointed at it. launchd would otherwise create it at its own umask (typically
+// world-readable); pre-creating and chmod-ing pins it to 0600 even when an
+// older, looser log from a previous install is already there.
+func ensureLogFile(path string) error {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, paths.FilePerm)
+	if err != nil {
+		return err
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+	return os.Chmod(path, paths.FilePerm)
 }
 
 // openCipher loads the encryption key (creating it if absent) and returns a

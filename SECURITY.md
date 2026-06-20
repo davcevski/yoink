@@ -37,10 +37,10 @@ keys. The history is **encrypted at rest** to protect against:
   missing or unreadable.
 - Decrypted plaintext exists only in process memory for a TUI session and is
   never written back to disk.
-- `history.db` is created owner-only (`0600`) and the config directory `0700`.
-  SQLite's `-wal`/`-shm` sidecars and the daemon log are left at the system
-  umask (typically `0644`), but the sidecars hold only ciphertext and the log
-  never contains clip contents — neither exposes plaintext.
+- `history.db`, its SQLite `-wal`/`-shm` sidecars, and the daemon log are all
+  created owner-only (`0600`); the config directory is `0700`. yoink sets a
+  `0077` umask at startup so nothing it writes is group/world-readable, and
+  provisions the log file itself so launchd cannot create it world-readable.
 
 ### Out of scope
 
